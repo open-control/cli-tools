@@ -1,0 +1,16 @@
+{
+  "name": "cli-tools",
+  "version": "0.1.0",
+  "description": "CLI tools for Open Control projects (build, upload, monitor)",
+  "keywords": ["open-control", "cli", "tools", "platformio"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-control/cli-tools.git"
+  },
+  "license": "MIT",
+  "frameworks": "*",
+  "platforms": "*",
+  "build": {
+    "srcFilter": ["-<*>"]
+  }
+}
