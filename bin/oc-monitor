@@ -42,11 +42,15 @@ echo -ne "${SHOW_CURSOR}"
 
 show_results "$BUILD_OUTPUT" "$PROJECT_ROOT" "$ENV" 0 "$TOTAL"
 
-# Monitor info
-PORT=$(echo "$BUILD_OUTPUT" | grep -oP "Uploading.*?(COM[0-9]+|/dev/tty[A-Za-z0-9]+)" | grep -oP "(COM[0-9]+|/dev/tty[A-Za-z0-9]+)" || echo "auto")
-SPEED=$(grep -E "^monitor_speed" "$PROJECT_ROOT/platformio.ini" 2>/dev/null | sed 's/monitor_speed *= *//' || echo "115200")
-echo -e "${GRAY}Monitor : ${PORT} @ ${SPEED}${NC}"
-echo -e "${GRAY}─────────────────────────────────${NC}"
-
-sleep 1
-exec pio device monitor -d "$PROJECT_ROOT" --quiet
+# Wait for device to re-enumerate after upload
+if PORT=$(wait_for_serial_port 5); then
+    echo -e "${GRAY}Monitor : ${PORT}${NC}"
+    echo -e "${GRAY}─────────────────────────────────${NC}"
+    echo ""
+    exec pio device monitor -p "$PORT" --quiet --raw
+else
+    warn "No device found after 5s, launching in auto mode..."
+    echo -e "${GRAY}─────────────────────────────────${NC}"
+    echo ""
+    exec pio device monitor -d "$PROJECT_ROOT" --quiet --raw
+fi
