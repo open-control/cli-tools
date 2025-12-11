@@ -4,62 +4,48 @@ Build, upload, and monitor tools for Open Control projects.
 
 ## Installation
 
-Add to your `platformio.ini`:
+Add `cli-tools/bin` to your PATH:
 
-```ini
-; Release
-lib_deps =
-    https://github.com/open-control/cli-tools
-
-; Development
-lib_deps =
-    cli-tools=symlink://../cli-tools
+```bash
+# In ~/.bashrc or ~/.zshrc
+export PATH="$PATH:/path/to/open-control/cli-tools/bin"
 ```
 
 ## Usage
 
-### Via wrapper script
-
-Create `script/build.sh` in your project:
+Run commands from any directory within a PlatformIO project:
 
 ```bash
-#!/bin/bash
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLI_TOOLS=""
-
-# Find cli-tools from .pio-link or sibling
-PIO_LINK=$(find "$PROJECT_ROOT/.pio/libdeps" -maxdepth 2 -name "cli-tools.pio-link" 2>/dev/null | head -1)
-if [[ -n "$PIO_LINK" ]]; then
-    URI=$(grep -oP '"uri":\s*"symlink://\K[^"]+' "$PIO_LINK")
-    [[ -n "$URI" ]] && CLI_TOOLS="$PROJECT_ROOT/$URI"
-fi
-[[ -z "$CLI_TOOLS" || ! -d "$CLI_TOOLS" ]] && CLI_TOOLS="$PROJECT_ROOT/../cli-tools"
-
-exec "$CLI_TOOLS/bin/oc-monitor.sh" "$PROJECT_ROOT"
+cd my-project        # or any subdirectory
+oc-build.sh          # Build only
+oc-upload.sh         # Build + upload
+oc-monitor.sh        # Build + upload + monitor
+oc-clean.sh          # Clean build files
 ```
 
-Then run:
+### Environment selection
+
+By default, scripts auto-detect the last used environment. Override with:
 
 ```bash
-./script/build.sh
-```
-
-### Direct execution
-
-```bash
-/path/to/cli-tools/bin/oc-monitor.sh /path/to/your/project
+oc-build.sh dev      # Force dev environment
+oc-build.sh release  # Force release environment
 ```
 
 ## Tools
 
 | Script | Description |
 |--------|-------------|
-| `bin/oc-monitor.sh` | Build, upload, and start serial monitor |
+| `oc-clean.sh` | Clean build files |
+| `oc-build.sh` | Build only |
+| `oc-upload.sh` | Build + upload |
+| `oc-monitor.sh` | Build + upload + serial monitor |
 
 ## Features
 
+- Auto-detect project root (walks up to find `platformio.ini`)
+- Auto-detect last used environment
 - Spinner animation during build/upload
 - Memory usage bars (FLASH, RAM1, RAM2, PSRAM)
-- Dependency graph with clickable links (VSCode)
+- Dependency graph display
 - Warning/error summary with file:line
-- Auto-detect environment from `platformio.ini`

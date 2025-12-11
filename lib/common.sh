@@ -28,6 +28,17 @@ warn()    { echo -e "${YELLOW}⚠${NC} $1"; }
 error()   { echo -e "${RED}✗${NC} $1" >&2; exit 1; }
 
 # ═══════════════════════════════════════════════════════════════════
+# Project root detection (walks up from pwd to find platformio.ini)
+# ═══════════════════════════════════════════════════════════════════
+find_project_root() {
+    local dir="${1:-$(pwd)}"
+    while [[ "$dir" != "/" && ! -f "$dir/platformio.ini" ]]; do
+        dir="$(dirname "$dir")"
+    done
+    [[ -f "$dir/platformio.ini" ]] && echo "$dir" || return 1
+}
+
+# ═══════════════════════════════════════════════════════════════════
 # Spinner
 # ═══════════════════════════════════════════════════════════════════
 SPIN='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
