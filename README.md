@@ -1,51 +1,86 @@
 # Open Control CLI Tools
 
-Build, upload, and monitor tools for Open Control projects.
+Build, upload, and monitor tools for Open Control PlatformIO projects.
 
 ## Installation
 
-Add `cli-tools/bin` to your PATH:
+### Linux / macOS
 
 ```bash
-# In ~/.bashrc or ~/.zshrc
+cd cli-tools
+./install.sh
+source ~/.bashrc  # or ~/.zshrc
+```
+
+### Windows (Git Bash / WSL)
+
+```powershell
+cd cli-tools
+powershell -ExecutionPolicy Bypass -File install.ps1
+# Restart terminal
+```
+
+### Manual
+
+Add to your shell config (`~/.bashrc`, `~/.zshrc`, or `~/.profile`):
+
+```bash
 export PATH="$PATH:/path/to/open-control/cli-tools/bin"
 ```
 
-## Usage
+## Commands
 
-Run commands from any directory within a PlatformIO project:
+Run from any directory within a PlatformIO project:
 
-```bash
-cd my-project        # or any subdirectory
-oc-build.sh          # Build only
-oc-upload.sh         # Build + upload
-oc-monitor.sh        # Build + upload + monitor
-oc-clean.sh          # Clean build files
-```
+| Command | Description |
+|---------|-------------|
+| `oc-build` | Build project |
+| `oc-upload` | Build and upload to device |
+| `oc-monitor` | Build, upload, and open serial monitor |
+| `oc-clean` | Clean build artifacts |
 
-### Environment selection
-
-By default, scripts auto-detect the last used environment. Override with:
+### Examples
 
 ```bash
-oc-build.sh dev      # Force dev environment
-oc-build.sh release  # Force release environment
+cd my-project
+oc-build              # Build with auto-detected env
+oc-build dev          # Build with dev environment
+oc-upload release     # Build and upload release
+oc-monitor            # Full workflow with monitor
 ```
 
-## Tools
+### Environment Detection
 
-| Script | Description |
-|--------|-------------|
-| `oc-clean.sh` | Clean build files |
-| `oc-build.sh` | Build only |
-| `oc-upload.sh` | Build + upload |
-| `oc-monitor.sh` | Build + upload + serial monitor |
+1. **Explicit argument**: `oc-build dev` uses `dev`
+2. **Last used**: Auto-detects from most recent `.pio/build/*`
+3. **Default**: Falls back to `default_envs` in `platformio.ini`
+4. **Fallback**: Uses `dev` if nothing else found
+
+## Output
+
+```
+example-project dev
+
+Building ⠋ 3s
+
+Dependencies
+  │ framework @ 0.1.3
+  │ hal-teensy @ 0.1.3
+
+Memory
+  FLASH ░░░░░░░░░░░░░░░░ 92KB/7.8MB (1%)
+  RAM1  ███░░░░░░░░░░░░░ 124KB/512KB (24%)
+  RAM2  ░░░░░░░░░░░░░░░░ 17KB/512KB (3%)
+
+BUILD OK 3s
+```
 
 ## Features
 
 - Auto-detect project root (walks up to find `platformio.ini`)
-- Auto-detect last used environment
+- Works from any subdirectory of the project
 - Spinner animation during build/upload
 - Memory usage bars (FLASH, RAM1, RAM2, PSRAM)
 - Dependency graph display
 - Warning/error summary with file:line
+- Cross-platform (Linux, macOS, Windows via Git Bash/WSL)
