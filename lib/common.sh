@@ -259,11 +259,52 @@ detect_env() {
 # ═══════════════════════════════════════════════════════════════════
 kill_monitors() {
     if command -v taskkill &>/dev/null; then
+        # Windows: kill python processes (pio monitor)
         taskkill //F //IM python.exe 2>/dev/null || true
+        taskkill //F //IM pythonw.exe 2>/dev/null || true
     else
+        # Linux/Mac: kill pio device monitor and common serial tools
         pkill -f "pio device monitor" 2>/dev/null || true
+        pkill -f "minicom.*tty" 2>/dev/null || true
+        pkill -f "screen.*/dev/tty" 2>/dev/null || true
     fi
-    sleep 0.5
+    sleep 0.3
+}
+
+# ═══════════════════════════════════════════════════════════════════
+# Serial port detection (cross-platform via PlatformIO)
+# ═══════════════════════════════════════════════════════════════════
+list_serial_ports() {
+    # Use pio device list for cross-platform detection
+    # Filter out legacy ports and keep only real USB devices
+    # - Linux: /dev/ttyS* are legacy hardware serial ports
+    # - Windows: COM1 is often a legacy/virtual port
+    pio device list --json-output 2>/dev/null | \
+        tr ',' '\n' | \
+        sed -n 's/.*"port"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | \
+        grep -vE '/dev/ttyS[0-9]+$|^COM1$' || true
+}
+
+# Wait for a serial port to become available after upload
+# Usage: wait_for_serial_port [timeout_seconds]
+# Returns: port path on stdout, spinner on stderr
+wait_for_serial_port() {
+    local timeout="${1:-5}"
+    local elapsed=0
+
+    while [[ $elapsed -lt $timeout ]]; do
+        local port=$(list_serial_ports | head -1)
+        if [[ -n "$port" ]]; then
+            printf "\r                                  \r" >&2
+            echo "$port"
+            return 0
+        fi
+        sleep 0.5
+        ((elapsed++))
+        printf "\r${GRAY}⏳ Waiting for device... %ds${NC}   " "$elapsed" >&2
+    done
+    printf "\r                                  \r" >&2
+    return 1
 }
 
 # ═══════════════════════════════════════════════════════════════════
