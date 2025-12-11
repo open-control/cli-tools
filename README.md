@@ -2,6 +2,12 @@
 
 Build, upload, and monitor tools for Open Control PlatformIO projects.
 
+## Prerequisites
+
+- [PlatformIO Core (CLI)](https://docs.platformio.org/en/latest/core/installation.html) - `pio` command
+- **Linux/macOS**: Bash shell
+- **Windows**: [Git for Windows](https://git-scm.com/download/win) (provides Git Bash)
+
 ## Installation
 
 ### Linux / macOS
