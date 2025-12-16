@@ -258,10 +258,14 @@ detect_env() {
 # Kill existing monitors
 # ═══════════════════════════════════════════════════════════════════
 kill_monitors() {
-    if command -v taskkill &>/dev/null; then
-        # Windows: kill python processes (pio monitor)
-        taskkill //F //IM python.exe 2>/dev/null || true
-        taskkill //F //IM pythonw.exe 2>/dev/null || true
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        # Windows: use PowerShell to kill only pio device monitor processes
+        # This avoids killing other Python processes (like MCP servers)
+        powershell -NoProfile -Command "
+            Get-CimInstance Win32_Process |
+            Where-Object { \$_.Name -match 'python' -and \$_.CommandLine -match 'device.*monitor|platformio.*monitor' } |
+            ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }
+        " 2>/dev/null || true
     else
         # Linux/Mac: kill pio device monitor and common serial tools
         pkill -f "pio device monitor" 2>/dev/null || true
