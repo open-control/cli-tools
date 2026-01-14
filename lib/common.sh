@@ -338,3 +338,74 @@ show_results() {
     fi
     echo ""
 }
+
+# ═══════════════════════════════════════════════════════════════════
+# Workflow functions (used by oc-build, oc-upload, oc-monitor)
+# ═══════════════════════════════════════════════════════════════════
+
+# Global state for workflow
+OC_PROJECT_ROOT=""
+OC_ENV=""
+OC_START=0
+
+# Initialize workflow: find project, detect env, show header
+# Usage: oc_init [env]
+oc_init() {
+    OC_PROJECT_ROOT=$(find_project_root) || error "platformio.ini not found (run from project directory)"
+    cd "$OC_PROJECT_ROOT"
+    OC_ENV=$(detect_env "$OC_PROJECT_ROOT" "$1")
+
+    clear
+    echo -e "${BOLD}${OC_PROJECT_ROOT##*/}${NC} ${GRAY}$OC_ENV${NC}"
+    echo ""
+
+    echo -ne "${HIDE_CURSOR}"
+    trap "echo -ne '${SHOW_CURSOR}'" EXIT
+
+    BUILD_OUTPUT=""
+    OC_START=$(date +%s)
+}
+
+# Finalize workflow: show results and exit
+# Usage: oc_finalize [status]
+oc_finalize() {
+    local status="${1:-0}"
+    local total=$(($(date +%s) - OC_START))
+    echo -ne "${SHOW_CURSOR}"
+    show_results "$BUILD_OUTPUT" "$OC_PROJECT_ROOT" "$OC_ENV" "$status" "$total"
+    exit "$status"
+}
+
+# Run build step
+# Usage: oc_build
+oc_build() {
+    if ! run_with_spinner "Building" pio run -e "$OC_ENV" -d "$OC_PROJECT_ROOT"; then
+        oc_finalize 1
+    fi
+    # Generate compile_commands.json for clangd (LSP) in background
+    pio run -e "$OC_ENV" -d "$OC_PROJECT_ROOT" -t compiledb >/dev/null 2>&1 &
+}
+
+# Run upload step
+# Usage: oc_upload
+oc_upload() {
+    if ! run_with_spinner "Uploading" pio run -e "$OC_ENV" -d "$OC_PROJECT_ROOT" -t nobuild -t upload; then
+        oc_finalize 1
+    fi
+}
+
+# Run monitor step (does not return)
+# Usage: oc_monitor
+oc_monitor() {
+    if PORT=$(wait_for_serial_port 5); then
+        echo -e "${GRAY}Monitor : ${PORT}${NC}"
+        echo -e "${GRAY}─────────────────────────────────${NC}"
+        echo ""
+        exec pio device monitor -p "$PORT" --quiet --raw
+    else
+        warn "No device found after 5s, launching in auto mode..."
+        echo -e "${GRAY}─────────────────────────────────${NC}"
+        echo ""
+        exec pio device monitor -d "$OC_PROJECT_ROOT" --quiet --raw
+    fi
+}
