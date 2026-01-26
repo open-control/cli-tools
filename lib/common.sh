@@ -5,6 +5,11 @@
 set -e
 
 # ═══════════════════════════════════════════════════════════════════
+# PlatformIO command (allows override via $PIO env var)
+# ═══════════════════════════════════════════════════════════════════
+PIO="${PIO:-pio}"
+
+# ═══════════════════════════════════════════════════════════════════
 # Colors
 # ═══════════════════════════════════════════════════════════════════
 RED='\033[0;31m'
@@ -283,7 +288,7 @@ list_serial_ports() {
     # Filter out legacy ports and keep only real USB devices
     # - Linux: /dev/ttyS* are legacy hardware serial ports
     # - Windows: COM1 is often a legacy/virtual port
-    pio device list --json-output 2>/dev/null | \
+    $PIO device list --json-output 2>/dev/null | \
         tr ',' '\n' | \
         sed -n 's/.*"port"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | \
         grep -vE '/dev/ttyS[0-9]+$|^COM1$' || true
@@ -379,17 +384,17 @@ oc_finalize() {
 # Run build step
 # Usage: oc_build
 oc_build() {
-    if ! run_with_spinner "Building" pio run -e "$OC_ENV" -d "$OC_PROJECT_ROOT"; then
+    if ! run_with_spinner "Building" $PIO run -e "$OC_ENV" -d "$OC_PROJECT_ROOT"; then
         oc_finalize 1
     fi
     # Generate compile_commands.json for clangd (LSP) in background
-    pio run -e "$OC_ENV" -d "$OC_PROJECT_ROOT" -t compiledb >/dev/null 2>&1 &
+    $PIO run -e "$OC_ENV" -d "$OC_PROJECT_ROOT" -t compiledb >/dev/null 2>&1 &
 }
 
 # Run upload step
 # Usage: oc_upload
 oc_upload() {
-    if ! run_with_spinner "Uploading" pio run -e "$OC_ENV" -d "$OC_PROJECT_ROOT" -t nobuild -t upload; then
+    if ! run_with_spinner "Uploading" $PIO run -e "$OC_ENV" -d "$OC_PROJECT_ROOT" -t nobuild -t upload; then
         oc_finalize 1
     fi
 }
@@ -401,11 +406,11 @@ oc_monitor() {
         echo -e "${GRAY}Monitor : ${PORT}${NC}"
         echo -e "${GRAY}─────────────────────────────────${NC}"
         echo ""
-        exec pio device monitor -p "$PORT" --quiet --raw
+        exec $PIO device monitor -p "$PORT" --quiet --raw
     else
         warn "No device found after 5s, launching in auto mode..."
         echo -e "${GRAY}─────────────────────────────────${NC}"
         echo ""
-        exec pio device monitor -d "$OC_PROJECT_ROOT" --quiet --raw
+        exec $PIO device monitor -d "$OC_PROJECT_ROOT" --quiet --raw
     fi
 }
